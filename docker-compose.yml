@@ -1,0 +1,97 @@
+version: '3.7'
+
+services:
+  oas_nginx:
+    image: nginx:latest
+    container_name: oas_nginx
+    volumes:
+     - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+     - "3001:80"
+    depends_on:
+      - oas_server
+    networks:
+      - service-net
+
+  oas_mysql:
+    image: mysql:latest
+    container_name: oas_mysql
+    restart: always
+    hostname: mysql
+    environment:
+      - "MYSQL_ROOT_PASSWORD=aaa123"
+      - "MYSQL_DATABASE=okr_assistant"
+      - "TZ=Asia/Shanghai"
+    security_opt:
+      - seccomp:unconfined
+    ports:
+      - 3306:3306
+    networks:
+      - service-net
+
+  oas_redis:
+    image: redis:latest
+    container_name: oas_redis
+    restart: always
+    hostname: redis
+    ports:
+      - 6379:6379
+    networks:
+      - service-net
+
+  oas_rabbitmq:
+    image: rabbitmq:latest
+    container_name: oas_rabbitmq
+    restart: always
+    hostname: rabbitmq
+    ports:
+      - 5672:5672
+    networks:
+      - service-net
+
+  oas_server:
+    build: .
+    image: okr_assistant_service:latest
+    command: python app.py
+    deploy:
+      mode: replicated
+      replicas: 2
+    env_file:
+      - .env
+    depends_on:
+      - oas_mysql
+      - oas_worker
+    networks:
+      - service-net
+
+  oas_beat:
+    image: okr_assistant_service:latest
+    container_name: oas_beat
+    command: celery -A oas.manager.celery beat
+    env_file:
+      - .env
+    depends_on:
+      - oas_mysql
+      - oas_redis
+      - oas_rabbitmq
+      - oas_worker
+    networks:
+      - service-net
+
+  oas_worker:
+    image: okr_assistant_service:latest
+    command: celery -A oas.manager.celery worker
+    deploy:
+      mode: replicated
+      replicas: 2
+    env_file:
+      - .env
+    depends_on:
+      - oas_mysql
+      - oas_redis
+      - oas_rabbitmq
+    networks:
+      - service-net
+
+networks:
+  service-net:

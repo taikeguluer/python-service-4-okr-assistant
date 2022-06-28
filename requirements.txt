@@ -1,0 +1,16 @@
+Flask
+python-dotenv
+requests
+pycryptodome
+tencentcloud-sdk-python
+pandas
+sqlalchemy
+pymysql
+pytz
+flask-sqlalchemy
+flask_wtf
+flask_restful
+celery[librabbitmq,redis,auth,msgpack]
+flask_migrate
+marshmallow-sqlalchemy
+eventlet
